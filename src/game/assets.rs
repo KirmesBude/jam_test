@@ -4,6 +4,8 @@ use bevy::{
     utils::HashMap,
 };
 
+use super::spawn::ui::HealthBarUiMaterial;
+
 #[derive(PartialEq, Eq, Hash, Reflect)]
 pub enum ImageAsset {
     Ducky,
@@ -97,5 +99,30 @@ impl SoundtrackAssets {
 
     pub fn all_loaded(&self, assets: &Assets<AudioSource>) -> bool {
         self.0.iter().all(|(_, handle)| assets.contains(handle))
+    }
+}
+
+#[derive(Resource, Reflect, Deref, DerefMut)]
+pub struct UiAssets {
+    pub health_bar: Handle<HealthBarUiMaterial>,
+}
+
+impl UiAssets {
+    pub fn new(
+        asset_server: &AssetServer,
+        health_bar_ui_materials: &mut Assets<HealthBarUiMaterial>,
+    ) -> Self {
+        let health_bar = HealthBarUiMaterial {
+            slider: 1.0,
+            color_texture: asset_server.load("images/splash.png"),
+        };
+
+        Self {
+            health_bar: health_bar_ui_materials.add(health_bar),
+        }
+    }
+
+    pub fn all_loaded(&self, assets: &Assets<HealthBarUiMaterial>) -> bool {
+        assets.contains(&self.health_bar)
     }
 }

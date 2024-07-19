@@ -1,10 +1,16 @@
-use bevy::color::palettes::css::{BLACK, BLUE, GREEN, ORANGE, WHITE};
+use bevy::color::palettes::css::{BLUE, GREEN, ORANGE, WHITE};
+use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::ui::Val::*;
 use bevy::{color::palettes::css::RED, prelude::*};
 
+use crate::game::assets::UiAssets;
 use crate::{screen::Screen, ui::widgets::Containers};
 
+/// This example uses a shader source file from the assets subdirectory
+const HEALTH_BAR_UI_SHADER_PATH: &str = "shaders/health_bar_ui.wgsl";
+
 pub(super) fn plugin(app: &mut App) {
+    app.add_plugins(UiMaterialPlugin::<HealthBarUiMaterial>::default());
     app.observe(spawn_game_ui);
     app.register_type::<GameUi>();
 }
@@ -16,16 +22,16 @@ pub struct SpawnGameUi;
 #[reflect(Component)]
 pub struct GameUi;
 
-fn spawn_game_ui(_trigger: Trigger<SpawnGameUi>, mut commands: Commands) {
+fn spawn_game_ui(_trigger: Trigger<SpawnGameUi>, mut commands: Commands, ui_assets: Res<UiAssets>) {
     commands
         .ui_root()
         .insert(StateScoped(Screen::Playing))
         .with_children(|parent| {
-            top_ui_root(parent);
+            top_ui_root(parent, &ui_assets.health_bar);
         });
 }
 
-fn top_ui_root(parent: &mut ChildBuilder) {
+fn top_ui_root(parent: &mut ChildBuilder, material: &Handle<HealthBarUiMaterial>) {
     parent
         .spawn((
             Name::new("Top Game UI"),
@@ -43,12 +49,27 @@ fn top_ui_root(parent: &mut ChildBuilder) {
             },
         ))
         .with_children(|parent| {
-            player_ui(parent, Name::new("Player1 UI"), RED.into());
-            player_ui(parent, Name::new("Player2 UI"), BLUE.into());
+            player_ui(
+                parent,
+                Name::new("Player1 UI"),
+                RED.into(),
+                material.clone_weak(),
+            );
+            player_ui(
+                parent,
+                Name::new("Player2 UI"),
+                BLUE.into(),
+                material.clone_weak(),
+            );
         });
 }
 
-fn player_ui(parent: &mut ChildBuilder, name: Name, color: Color) {
+fn player_ui(
+    parent: &mut ChildBuilder,
+    name: Name,
+    color: Color,
+    material: Handle<HealthBarUiMaterial>,
+) {
     parent
         .spawn((
             name,
@@ -67,7 +88,7 @@ fn player_ui(parent: &mut ChildBuilder, name: Name, color: Color) {
         ))
         .with_children(|parent| {
             name_score_ui(parent);
-            lives_health_ui(parent);
+            lives_health_ui(parent, material);
         });
 }
 
@@ -154,7 +175,7 @@ fn score_ui(parent: &mut ChildBuilder) {
         });
 }
 
-fn lives_health_ui(parent: &mut ChildBuilder) {
+fn lives_health_ui(parent: &mut ChildBuilder, material: Handle<HealthBarUiMaterial>) {
     parent
         .spawn((
             Name::new("Lives Health UI"),
@@ -173,7 +194,7 @@ fn lives_health_ui(parent: &mut ChildBuilder) {
         ))
         .with_children(|parent| {
             lives_ui(parent);
-            health_ui(parent);
+            health_ui(parent, material);
         });
 }
 
@@ -207,7 +228,7 @@ fn lives_ui(parent: &mut ChildBuilder) {
         });
 }
 
-fn health_ui(parent: &mut ChildBuilder) {
+fn health_ui(parent: &mut ChildBuilder, material: Handle<HealthBarUiMaterial>) {
     parent
         .spawn((
             Name::new("Health UI"),
@@ -225,15 +246,33 @@ fn health_ui(parent: &mut ChildBuilder) {
         .with_children(|parent| {
             parent.spawn((
                 Name::new("Lives UI Image"),
-                NodeBundle {
+                MaterialNodeBundle {
                     style: Style {
                         width: Percent(100.0),
                         height: Percent(100.0),
                         ..default()
                     },
-                    background_color: BackgroundColor(BLACK.into()),
+                    material,
                     ..default()
                 },
             ));
         });
+}
+
+#[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
+pub struct HealthBarUiMaterial {
+    /// Represents how much of the image is visible
+    /// Goes from 0 to 1
+    #[uniform(0)]
+    pub slider: f32,
+    /// Image used to represent the slider
+    #[texture(1)]
+    #[sampler(2)]
+    pub color_texture: Handle<Image>,
+}
+
+impl UiMaterial for HealthBarUiMaterial {
+    fn fragment_shader() -> ShaderRef {
+        HEALTH_BAR_UI_SHADER_PATH.into()
+    }
 }
