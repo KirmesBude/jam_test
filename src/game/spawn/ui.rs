@@ -1,10 +1,12 @@
-use bevy::color::palettes::css::{BLUE, GREEN, ORANGE, WHITE};
+use bevy::color::palettes::css::{GREEN, ORANGE, WHITE};
+use bevy::prelude::*;
 use bevy::render::render_resource::{AsBindGroup, ShaderRef};
 use bevy::ui::Val::*;
-use bevy::{color::palettes::css::RED, prelude::*};
 
 use crate::game::assets::UiAssets;
 use crate::{screen::Screen, ui::widgets::Containers};
+
+use super::player::Player;
 
 /// This example uses a shader source file from the assets subdirectory
 const HEALTH_BAR_UI_SHADER_PATH: &str = "shaders/health_bar_ui.wgsl";
@@ -49,30 +51,15 @@ fn top_ui_root(parent: &mut ChildBuilder, material: &Handle<HealthBarUiMaterial>
             },
         ))
         .with_children(|parent| {
-            player_ui(
-                parent,
-                Name::new("Player1 UI"),
-                RED.into(),
-                material.clone_weak(),
-            );
-            player_ui(
-                parent,
-                Name::new("Player2 UI"),
-                BLUE.into(),
-                material.clone_weak(),
-            );
+            player_ui(parent, Player::Player1, material.clone_weak());
+            player_ui(parent, Player::Player2, material.clone_weak());
         });
 }
 
-fn player_ui(
-    parent: &mut ChildBuilder,
-    name: Name,
-    color: Color,
-    material: Handle<HealthBarUiMaterial>,
-) {
+fn player_ui(parent: &mut ChildBuilder, player: Player, material: Handle<HealthBarUiMaterial>) {
     parent
         .spawn((
-            name,
+            Name::new(player.id()),
             NodeBundle {
                 style: Style {
                     width: Percent(40.0),
@@ -82,17 +69,17 @@ fn player_ui(
                     flex_direction: FlexDirection::Column,
                     ..default()
                 },
-                background_color: BackgroundColor(color),
+                background_color: BackgroundColor(player.color()),
                 ..default()
             },
         ))
         .with_children(|parent| {
-            name_score_ui(parent);
-            lives_health_ui(parent, material);
+            name_score_ui(parent, player);
+            lives_health_ui(parent, material, player);
         });
 }
 
-fn name_score_ui(parent: &mut ChildBuilder) {
+fn name_score_ui(parent: &mut ChildBuilder, player: Player) {
     parent
         .spawn((
             Name::new("Name Score UI"),
@@ -110,12 +97,15 @@ fn name_score_ui(parent: &mut ChildBuilder) {
             },
         ))
         .with_children(|parent| {
-            name_ui(parent);
-            score_ui(parent);
+            name_ui(parent, player);
+            score_ui(parent, player);
         });
 }
 
-fn name_ui(parent: &mut ChildBuilder) {
+#[derive(Component)]
+pub struct NameUi;
+
+fn name_ui(parent: &mut ChildBuilder, player: Player) {
     parent
         .spawn((
             Name::new("Name UI"),
@@ -134,18 +124,23 @@ fn name_ui(parent: &mut ChildBuilder) {
             parent.spawn((
                 Name::new("Name UI Text"),
                 TextBundle::from_section(
-                    "Char",
+                    player.id(),
                     TextStyle {
                         font_size: 30.0,
                         color: WHITE.into(),
                         ..default()
                     },
                 ),
+                player,
+                NameUi,
             ));
         });
 }
 
-fn score_ui(parent: &mut ChildBuilder) {
+#[derive(Component)]
+pub struct ScoreUi;
+
+fn score_ui(parent: &mut ChildBuilder, player: Player) {
     parent
         .spawn((
             Name::new("Score UI"),
@@ -171,11 +166,17 @@ fn score_ui(parent: &mut ChildBuilder) {
                         ..default()
                     },
                 ),
+                player,
+                ScoreUi,
             ));
         });
 }
 
-fn lives_health_ui(parent: &mut ChildBuilder, material: Handle<HealthBarUiMaterial>) {
+fn lives_health_ui(
+    parent: &mut ChildBuilder,
+    material: Handle<HealthBarUiMaterial>,
+    player: Player,
+) {
     parent
         .spawn((
             Name::new("Lives Health UI"),
@@ -193,12 +194,15 @@ fn lives_health_ui(parent: &mut ChildBuilder, material: Handle<HealthBarUiMateri
             },
         ))
         .with_children(|parent| {
-            lives_ui(parent);
-            health_ui(parent, material);
+            lives_ui(parent, player);
+            health_ui(parent, material, player);
         });
 }
 
-fn lives_ui(parent: &mut ChildBuilder) {
+#[derive(Component)]
+pub struct LivesUi;
+
+fn lives_ui(parent: &mut ChildBuilder, player: Player) {
     parent
         .spawn((
             Name::new("Lives UI"),
@@ -224,11 +228,16 @@ fn lives_ui(parent: &mut ChildBuilder) {
                         ..default()
                     },
                 ),
+                player,
+                LivesUi,
             ));
         });
 }
 
-fn health_ui(parent: &mut ChildBuilder, material: Handle<HealthBarUiMaterial>) {
+#[derive(Component)]
+pub struct HealthBarUi;
+
+fn health_ui(parent: &mut ChildBuilder, material: Handle<HealthBarUiMaterial>, player: Player) {
     parent
         .spawn((
             Name::new("Health UI"),
@@ -255,6 +264,8 @@ fn health_ui(parent: &mut ChildBuilder, material: Handle<HealthBarUiMaterial>) {
                     material,
                     ..default()
                 },
+                player,
+                HealthBarUi,
             ));
         });
 }

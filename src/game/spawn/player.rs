@@ -1,6 +1,9 @@
 //! Spawn the player.
 
-use bevy::prelude::*;
+use bevy::{
+    color::palettes::css::{BLUE, RED},
+    prelude::*,
+};
 
 use crate::{
     game::{
@@ -19,9 +22,28 @@ pub(super) fn plugin(app: &mut App) {
 #[derive(Event, Debug)]
 pub struct SpawnPlayer;
 
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
-pub struct Player;
+pub enum Player {
+    Player1,
+    Player2,
+}
+
+impl Player {
+    pub fn color(&self) -> Color {
+        match self {
+            Player::Player1 => BLUE.into(),
+            Player::Player2 => RED.into(),
+        }
+    }
+
+    pub fn id(&self) -> &'static str {
+        match self {
+            Player::Player1 => "Player 1",
+            Player::Player2 => "Player 2",
+        }
+    }
+}
 
 fn spawn_player(
     _trigger: Trigger<SpawnPlayer>,
@@ -39,7 +61,7 @@ fn spawn_player(
 
     commands.spawn((
         Name::new("Player"),
-        Player,
+        Player::Player1,
         SpriteBundle {
             texture: images[&ImageAsset::Ducky].clone_weak(),
             transform: Transform::from_scale(Vec2::splat(8.0).extend(1.0)),
