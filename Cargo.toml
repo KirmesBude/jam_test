@@ -13,6 +13,7 @@ log = { version = "0.4", features = [
 ] }
 rand = "0.8"
 bevy-inspector-egui = "0.25"
+bevy_ecs_ldtk = {git = "https://github.com/Trouv/bevy_ecs_ldtk.git", rev = "d888535e4c57147f60dd0de6878ada0c8fe8611e"}
 
 [features]
 default = [
